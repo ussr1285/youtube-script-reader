@@ -10,38 +10,41 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## 설정
+## 사용법
 
 ```bash
-cp .env.example .env
+# 파일에서 URL 목록 읽기
+python youtube_transcript.py urls.txt
+
+# URL 직접 입력
+python youtube_transcript.py https://youtube.com/watch?v=xxx
+
+# 파일 + URL 혼합
+python youtube_transcript.py urls.txt https://youtube.com/watch?v=yyy
+
+# 옵션
+python youtube_transcript.py urls.txt -l ko,en -d 3.0 -o outputs -c cookies.txt
 ```
 
-`.env` 파일을 편집하여 설정을 변경할 수 있습니다:
-
-| 변수 | 설명 | 기본값 |
+| 옵션 | 설명 | 기본값 |
 |------|------|--------|
-| `URL_FILE` | YouTube URL 목록 파일 경로 | `ycombinaotr-영상들.txt` |
-| `LANGUAGES` | 자막 언어 우선순위 (쉼표 구분) | `ko,en` |
-| `DELAY` | 요청 간 대기 시간 (초) | `3.0` |
-| `COOKIES_FILE` | yt-dlp용 쿠키 파일 (선택) | `` |
+| `-l, --lang` | 자막 언어 우선순위 (쉼표 구분) | `ko,en` |
+| `-d, --delay` | 요청 간 대기 시간 (초) | `3.0` |
+| `-o, --output` | 출력 디렉토리 | `outputs` |
+| `-c, --cookies` | yt-dlp용 쿠키 파일 | - |
 
-## 실행
-
-```bash
-python youtube_transcript.py
-```
+`.env` 파일로도 기본값 설정 가능 (`LANGUAGES`, `DELAY`, `COOKIES_FILE`).
 
 이미 다운로드한 영상은 자동으로 건너뛰므로, IP 차단 시 나중에 다시 실행하면 됩니다.
 
 ## IP 차단 해결
 
-YouTube가 IP를 차단할 경우 Chrome 쿠키를 추출하여 사용할 수 있습니다:
+YouTube가 IP를 차단할 경우 Chrome 쿠키를 추출하여 사용:
 
 ```bash
 yt-dlp --cookies-from-browser chrome --cookies cookies.txt --skip-download "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+python youtube_transcript.py urls.txt -c cookies.txt
 ```
-
-그 후 `.env`에 `COOKIES_FILE=cookies.txt`를 설정하면 됩니다.
 
 ## 출력
 
@@ -49,14 +52,5 @@ yt-dlp --cookies-from-browser chrome --cookies cookies.txt --skip-download "http
 
 - `.txt` - 타임스탬프가 포함된 읽기 쉬운 텍스트
 - `.json` - 구조화된 데이터 (전체 텍스트 포함)
-
-## URL 파일 형식
-
-한 줄에 하나의 YouTube URL:
-
-```
-https://www.youtube.com/watch?v=MGsalg2f9js
-https://www.youtube.com/watch?v=4uzGDAoNOZc
-```
 
 중복 URL은 자동으로 제거됩니다.

@@ -1,3 +1,4 @@
+import argparse
 import os
 import json
 import time
@@ -12,21 +13,12 @@ from youtube_transcript_api._errors import IpBlocked
 
 load_dotenv()
 
-URL_FILE = os.getenv("URL_FILE", "ycombinaotr-영상들.txt")
 LANGUAGES = os.getenv("LANGUAGES", "ko,en").split(",")
 DELAY = float(os.getenv("DELAY", "3.0"))
 COOKIES_FILE = os.getenv("COOKIES_FILE", "")
 OUTPUT_DIR = "outputs"
 
 ytt_api = YouTubeTranscriptApi()
-
-
-def load_urls(filepath):
-    with open(filepath, "r", encoding="utf-8") as f:
-        lines = [line.strip() for line in f if line.strip()]
-    unique = list(dict.fromkeys(lines))
-    print(f"Loaded {len(lines)} lines -> {len(unique)} unique URLs")
-    return unique
 
 
 def extract_video_id(url):
@@ -187,13 +179,60 @@ def save_outputs(video_id, url, metadata, transcript, timestamp_str):
     return txt_path, json_path
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="YouTube Transcript Exporter")
+    parser.add_argument(
+        "input",
+        nargs="*",
+        help="YouTube URL(s) or path to a file containing URLs (one per line)",
+    )
+    parser.add_argument("-l", "--lang", help="Languages (comma-separated)", default=None)
+    parser.add_argument("-d", "--delay", help="Delay between requests (seconds)", type=float, default=None)
+    parser.add_argument("-o", "--output", help="Output directory", default=None)
+    parser.add_argument("-c", "--cookies", help="Cookie file for yt-dlp", default=None)
+    return parser.parse_args()
+
+
+def resolve_urls(inputs):
+    """Resolve inputs to a list of URLs. Each input can be a URL or a file path."""
+    urls = []
+    for item in inputs:
+        if os.path.isfile(item):
+            with open(item, "r", encoding="utf-8") as f:
+                urls.extend(line.strip() for line in f if line.strip())
+        else:
+            urls.append(item)
+    unique = list(dict.fromkeys(urls))
+    print(f"Loaded {len(urls)} URLs -> {len(unique)} unique")
+    return unique
+
+
 def main():
+    args = parse_args()
+
+    global LANGUAGES, DELAY, COOKIES_FILE, OUTPUT_DIR
+    if args.lang:
+        LANGUAGES = args.lang.split(",")
+    if args.delay is not None:
+        DELAY = args.delay
+    if args.output:
+        OUTPUT_DIR = args.output
+    if args.cookies:
+        COOKIES_FILE = args.cookies
+
     print("=" * 60)
     print("YouTube Transcript Exporter")
     print("=" * 60)
     print()
 
-    urls = load_urls(URL_FILE)
+    if not args.input:
+        print("Usage: python youtube_transcript.py <url_or_file> [url_or_file ...]")
+        print("  python youtube_transcript.py urls.txt")
+        print("  python youtube_transcript.py https://youtube.com/watch?v=xxx")
+        print("  python youtube_transcript.py urls.txt https://youtube.com/watch?v=xxx")
+        return
+
+    urls = resolve_urls(args.input)
     timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     success = 0

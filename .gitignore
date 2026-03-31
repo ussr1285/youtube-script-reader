@@ -186,3 +186,6 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 ycombinaotr-영상들.txt
+.gstack/
+jmj
+.claude
