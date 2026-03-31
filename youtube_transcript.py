@@ -1,4 +1,5 @@
 import argparse
+import csv
 import os
 import json
 import time
@@ -179,6 +180,17 @@ def save_outputs(video_id, url, metadata, transcript, timestamp_str):
     return txt_path, json_path
 
 
+def save_csv(rows, timestamp_str):
+    """Save all results as a single CSV file."""
+    csv_path = os.path.join(OUTPUT_DIR, f"transcripts_{timestamp_str}.csv")
+    with open(csv_path, "w", encoding="utf-8-sig", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["url", "video_id", "title", "channel", "script"])
+        for row in rows:
+            writer.writerow(row)
+    return csv_path
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="YouTube Transcript Exporter")
     parser.add_argument(
@@ -239,6 +251,7 @@ def main():
     skipped = 0
     already = 0
     ip_blocked_count = 0
+    csv_rows = []
 
     for i, url in enumerate(urls, 1):
         video_id = extract_video_id(url)
@@ -260,6 +273,8 @@ def main():
             transcript, method = fetch_transcript(video_id, url)
             if transcript:
                 save_outputs(video_id, url, metadata, transcript, timestamp_str)
+                full_text = " ".join(seg["text"] for seg in transcript)
+                csv_rows.append([url, video_id, metadata["title"], metadata["author_name"], full_text])
                 print(f"OK ({method}) - {metadata['title'][:45]}")
                 success += 1
                 ip_blocked_count = 0
@@ -281,6 +296,8 @@ def main():
                 transcript, method = fetch_transcript(video_id, url)
                 if transcript:
                     save_outputs(video_id, url, metadata, transcript, timestamp_str)
+                    full_text = " ".join(seg["text"] for seg in transcript)
+                    csv_rows.append([url, video_id, metadata["title"], metadata["author_name"], full_text])
                     print(f"OK ({method}) - {metadata['title'][:45]}")
                     success += 1
                     ip_blocked_count = 0
@@ -296,6 +313,10 @@ def main():
 
         if i < len(urls):
             time.sleep(DELAY)
+
+    if csv_rows:
+        csv_path = save_csv(csv_rows, timestamp_str)
+        print(f"\nCSV: {csv_path}")
 
     print()
     print("=" * 60)
